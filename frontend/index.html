@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AeroSR - Aerial Image Super Resolution</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="background-glow"></div>
+    
+    <header class="glass-panel">
+        <div class="logo">
+            <h1>Aero<span>SR</span></h1>
+            <p>Super Resolution Preprocessing for Aerial Detection (YOLOv8)</p>
+        </div>
+        <div class="controls">
+            <select id="image-selector">
+                <option value="">Loading images...</option>
+            </select>
+            <button id="process-btn" class="primary-btn">Enhance & Detect</button>
+        </div>
+    </header>
+
+    <main>
+        <section class="simulator-panel glass-panel">
+            <h2>Degradation Simulator</h2>
+            <div class="slider-group">
+                <label>Noise Level (Sigma): <span id="noise-val">15</span></label>
+                <input type="range" id="noise-slider" min="0" max="50" value="15">
+            </div>
+            <div class="slider-group">
+                <label>Blur Kernel: <span id="blur-val">5</span></label>
+                <input type="range" id="blur-slider" min="0" max="11" step="2" value="5">
+            </div>
+            <div class="slider-group">
+                <label>Atmospheric Haze (t): <span id="haze-val">0.85</span></label>
+                <input type="range" id="haze-slider" min="0.3" max="1.0" step="0.05" value="0.85">
+            </div>
+            <div class="toggles">
+                <label class="switch">
+                    <input type="checkbox" id="toggle-boxes" checked>
+                    <span class="slider round"></span>
+                </label>
+                <span>Show Bounding Boxes</span>
+            </div>
+        </section>
+
+        <section class="visualization">
+            <div class="image-grid">
+                <!-- Original -->
+                <div class="image-card glass-panel">
+                    <h3>Ground Truth (HR)</h3>
+                    <div class="img-container">
+                        <img id="img-orig" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Original">
+                        <canvas id="canvas-orig"></canvas>
+                        <div class="loader" id="loader-orig"></div>
+                    </div>
+                    <div class="stats" id="stats-orig">Detections: 0</div>
+                </div>
+
+                <!-- Degraded -->
+                <div class="image-card glass-panel">
+                    <h3>Degraded (LR)</h3>
+                    <div class="img-container">
+                        <img id="img-deg" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Degraded">
+                        <canvas id="canvas-deg"></canvas>
+                        <div class="loader" id="loader-deg"></div>
+                    </div>
+                    <div class="stats" id="stats-deg">Detections: 0</div>
+                </div>
+
+                <!-- Bicubic -->
+                <div class="image-card glass-panel">
+                    <h3>Bicubic Baseline</h3>
+                    <div class="img-container">
+                        <img id="img-bicubic" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Bicubic">
+                        <canvas id="canvas-bicubic"></canvas>
+                        <div class="loader" id="loader-bicubic"></div>
+                    </div>
+                    <div class="stats" id="stats-bicubic">Detections: 0</div>
+                </div>
+
+                <!-- SR Enhanced -->
+                <div class="image-card glass-panel highlight-card">
+                    <div class="badge">AeroSR ESPCN</div>
+                    <h3>AI Enhanced (SR)</h3>
+                    <div class="img-container">
+                        <img id="img-sr" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="SR Enhanced">
+                        <canvas id="canvas-sr"></canvas>
+                        <div class="loader" id="loader-sr"></div>
+                    </div>
+                    <div class="stats" id="stats-sr">Detections: 0</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="benchmarks glass-panel">
+            <h2>System Benchmarks (mAP@50)</h2>
+            <div class="charts-container">
+                <div class="chart-box">
+                    <canvas id="barChart"></canvas>
+                </div>
+                <div class="chart-box">
+                    <canvas id="lossChart"></canvas>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
