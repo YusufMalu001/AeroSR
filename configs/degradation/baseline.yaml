@@ -1,0 +1,17 @@
+scale_factor: 4
+downsample_mode: bicubic
+upsample_mode: bicubic
+apply_downsample: true
+apply_blur: true
+blur_kernel: 5
+blur_sigma: 0.0
+blur_in_hr: true
+apply_noise: true
+noise_sigma: 15.0
+apply_haze: true
+haze_t: 0.85
+haze_A: 240.0
+apply_jpeg: false
+jpeg_quality: 75
+randomize: false
+seed: 42

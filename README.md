@@ -1,97 +1,54 @@
-# AeroSR: Aerial Super-Resolution for Enhanced Object Detection
+# AeroSR: Degradation-Aware Aerial Image Restoration & Small-Object Detection
 
-[![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-red.svg)](https://pytorch.org/)
-[![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-green.svg)](https://github.com/ultralytics/ultralytics)
+**AeroSR** investigates degradation-aware aerial image restoration and its impact on downstream small-object detection using a fixed YOLOv8n detector on the DIOR dataset.
 
-AeroSR is a lightweight, end-to-end **Super-Resolution (SR) preprocessing pipeline** designed to restore synthetically degraded aerial and satellite imagery, significantly improving downstream object detection accuracy. 
-
-Aerial images captured by drones and satellites often suffer from atmospheric haze, sensor noise, and motion blur. This project demonstrates that enhancing these low-resolution, degraded images using an **Efficient Sub-Pixel Convolutional Neural Network (ESPCN)** leads to quantifiable improvements in object detection performance using state-of-the-art models like YOLOv8.
+> **Attribution & Provenance:** The initial repository (`degrade.py`, `sr_model.py`, `train_sr.py`, `evaluate.py`, `prepare_dataset.py`, `server.py`, `frontend/`, and `weights/yolov8_dior.pt`) was adapted from existing work. All modular research infrastructure under `src/aerosr/`, `configs/`, `scripts/`, `tests/`, and `docs/` represents original engineering and experimental contributions. See [PROJECT_AUDIT.md](docs/PROJECT_AUDIT.md) for a full breakdown.
 
 ---
 
-## 🔬 Methodology
-
-Our approach integrates synthetic image degradation with a deep-learning-based restoration pipeline:
-
-1. **Synthetic Degradation Modeling (`degrade.py`)**: 
-   High-resolution ground truth images are mathematically degraded to simulate real-world aerial conditions. The degradation model includes:
-   - **4x Downsampling** (Bicubic interpolation)
-   - **Atmospheric Haze** (Atmospheric scattering model)
-   - **Gaussian Blur** (Simulating motion/lens blur)
-   - **Gaussian Noise** (Simulating sensor noise)
-
-2. **Super-Resolution Model (`sr_model.py`)**:
-   We implement the **ESPCN** architecture, a highly efficient PyTorch model designed for real-time super-resolution. The model learns to reconstruct high-frequency details from the degraded low-resolution patches by utilizing a sub-pixel convolution layer, making it computationally lightweight and suitable for edge-device deployment.
-
-3. **Object Detection (`server.py`)**:
-   We utilize **YOLOv8** to benchmark the effectiveness of the SR reconstruction. The pipeline compares YOLO bounding box predictions across four modalities:
-   - **Original (Ground Truth)**
-   - **Degraded (Low-Resolution)**
-   - **Bicubic Upscaled (Baseline)**
-   - **ESPCN Super-Resolved (AeroSR)**
+## Research Questions
+1. Under different image degradation conditions (downsampling, blur, noise, haze, compression), which degradation causes the largest loss in aerial object detection?
+2. Which lightweight super-resolution architectures (Bicubic, ESPCN, SRCNN, FSRCNN, ResidualSRNet) best recover downstream detection accuracy, and at what computational cost?
+3. Do pixel-wise image quality metrics (PSNR, SSIM) correlate with downstream object detection (`mAP@0.5`)?
+4. How well do restoration models generalize to unseen degradation distributions?
 
 ---
 
-## 📂 Repository Structure
+## Key Results (DIOR 100-Image Held-Out Test Set)
+All results are generated from `outputs/all_results.json` using fixed `weights/yolov8_dior.pt` (`seed=42`).
 
+| Method | Params | Latency (ms) | PSNR (dB) | SSIM | mAP@0.5 | Small-Object Recall |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Clean (Reference)** | — | — | inf | 1.0000 | **0.7543** | **0.7179** |
+| **Bicubic (Degraded)** | — | — | 19.10 | 0.4208 | 0.1863 | 0.0959 |
+| **FSRCNN** | 24,683 | 73.65 | 22.52 | 0.5197 | 0.1966 | 0.0310 |
+| **SRCNN** | 69,251 | 952.67 | 24.41 | 0.5821 | 0.3247 | 0.1580 |
+| **ESPCN (Baseline)** | 37,200 | **47.35** | 24.23 | 0.5633 | 0.4071 | 0.1594 |
+| **ResidualSRNet (Ours)** | 88,752 | 104.49 | **24.96** | **0.6081** | **0.5193** | **0.3907** |
+
+See [RESEARCH_REPORT.md](docs/RESEARCH_REPORT.md) for full results across Experiments A–F and generated figures in `outputs/figures/`.
+
+---
+
+## Repository Structure
 ```text
 AeroSR/
-├── data/                  # Datasets (e.g., DIOR dataset) - *Not tracked by git*
-├── frontend/              # HTML/JS/CSS for the visual benchmark dashboard
-├── weights/               # PyTorch model weights (ESPCN, YOLOv8)
-├── degrade.py             # Synthetic degradation model (haze, blur, noise)
-├── evaluate.py            # Script for quantitative benchmarking (mAP evaluation)
-├── prepare_dataset.py     # Utility to download and slice the DIOR dataset
-├── server.py              # FastAPI inference backend & UI host
-├── sr_model.py            # ESPCN network architecture
-├── train_sr.py            # PyTorch training script for the ESPCN model
-└── test_download.py       # Dataset download utility
+├── configs/                 # YAML degradation & experiment configs
+├── docs/                    # Audit, architecture, protocol, and research report
+├── src/aerosr/              # Modular PyTorch package (degradation, models, training, evaluation, plots)
+├── scripts/                 # Split preparation & master experiment runner
+├── tests/                   # Pytest unit tests
+├── weights/                 # Fixed YOLOv8n DIOR weights
+└── pyproject.toml           # Package & test configuration
 ```
 
 ---
 
-## 🚀 Getting Started
-
-### Prerequisites
-- Python 3.8+
-- CPU or NVIDIA GPU + CUDA Toolkit
-
-### Installation
-Clone the repository and install the required dependencies:
-
+## Quick Start
 ```bash
-git clone https://github.com/YusufMalu001/AeroSR.git
-cd AeroSR
-pip install torch torchvision opencv-python ultralytics fastapi uvicorn pydantic numpy tqdm
+python3 -m venv .venv
+.venv/bin/pip install -e . --no-deps
+.venv/bin/pytest -v
+.venv/bin/python scripts/prepare_splits.py
+.venv/bin/python scripts/run_experiments.py --epochs 5 --patches-per-image 20 --seed 42
 ```
-
----
-
-## 🛠️ Usage
-
-### 1. Training the Super-Resolution Model
-To train the ESPCN model on the degraded image patches against the original high-resolution ground truths:
-```bash
-python train_sr.py
-```
-*Note: Ensure `prepare_dataset.py` has been executed to generate the required training dataset slices.*
-
-### 2. Running the Inference Dashboard
-AeroSR includes a fully interactive web dashboard to visually compare the YOLOv8 detections on degraded vs. super-resolved images.
-
-Start the FastAPI server:
-```bash
-uvicorn server:app --host 127.0.0.1 --port 8000
-```
-Then navigate to `http://127.0.0.1:8000/static/index.html` in your web browser.
-
----
-
-## 📊 Evaluation & Results
-You can evaluate the quantitative object detection performance (mAP50) using the `evaluate.py` script. The results will demonstrate how Super-Resolution preprocessing recovers detection fidelity lost to atmospheric and sensor degradation.
-
----
-
-## 📜 License
-This project is open-source and available under the MIT License.
